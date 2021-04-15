@@ -1,0 +1,86 @@
+Device (NAUO)
+{
+    Name (_ADR, Zero)  // _ADR: Address
+    Name (_HID, "NVTN2020")  // _HID: Hardware ID
+    Name (_CID, "NVTN2020")  // _CID: Compatible ID
+    Name (_DDN, "NAU8821")  // _DDN: DOS Device Name
+    Name (_UID, One)  // _UID: Unique ID
+
+    Name (_DSD, Package (0x02)  // _DSD: Device-Specific Data
+    {
+        ToUUID ("daffd814-6eba-4d8c-8a91-bc9bbf4aa301") /* Device Properties for _DSD */, 
+        Package (0x08)
+        {
+            Package (0x02)
+            {
+                "nuvoton,jkdet-enable", 
+                One
+            },
+
+            Package (0x02)
+            {
+                "nuvoton,jkdet-pull-enable", 
+                One
+            },
+
+            Package (0x02)
+            {
+                "nuvoton,jkdet-pull-up", 
+                One
+            },
+
+            Package (0x02)
+            {
+                "nuvoton,jkdet-polarity", 
+                One
+            },
+
+            Package (0x02)
+            {
+                "nuvoton,micbias-voltage", 
+                0x06
+            },
+
+            Package (0x02)
+            {
+                "nuvoton,vref-impedance", 
+                0x02
+            },
+
+            Package (0x02)
+            {
+                "nuvoton,jack-insert-debounce", 
+                0x07
+            }, 
+
+            Package (0x02)
+            {
+                "nuvoton,jack-eject-debounce", 
+                Zero
+            }, 
+        }
+    })
+
+    Method (_CRS, 0, NotSerialized)  // _CRS: Current Resource Settings
+    {
+        Name (SBUF, ResourceTemplate ()
+        {
+            I2cSerialBusV2 (0x001B, ControllerInitiated, 0x00061A80,
+                AddressingMode7Bit, "\\_SB.PCI0.I2C2",
+                0x00, ResourceConsumer, , Exclusive,
+                )
+            GpioInt (Edge, ActiveLow, Exclusive, PullNone, 0x0000,
+                "\\_SB.GPO3", 0x00, ResourceConsumer, ,
+                )
+                {   // Pin list
+                    0x004F
+                }
+        })
+        Return (SBUF) /* \_SB_.PCI0.I2C2.NAUO._CRS.SBUF */
+    }
+
+    Method (_STA, 0, NotSerialized)  // _STA: Status
+    {
+        Return (0x0F)
+    }
+}
