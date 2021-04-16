@@ -7,8 +7,6 @@
  * Licensed under the GPL-2.
  */
 
-//#define DEBUG
-
 #include <linux/module.h>
 #include <linux/delay.h>
 #include <linux/init.h>
@@ -1074,62 +1072,6 @@ static irqreturn_t nau8821_interrupt(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-#ifdef DEBUG
-static int nau8821_reg_write(void *context, unsigned int reg,
-			      unsigned int value)
-{
-	struct i2c_client *client = context;
-	u8 buf[4];
-	int ret;
-
-	buf[0] = (reg >> 8) & 0xff;
-	buf[1] = reg & 0xff;
-	buf[2] = (value >> 8) & 0xff;
-	buf[3] = value & 0xff;
-
-	ret = i2c_master_send(client, buf, sizeof(buf));
-	if (ret == sizeof(buf)) {
-		dev_info(&client->dev, "%x <= %x\n", reg, value);
-		return 0;
-	} else if (ret < 0)
-		return ret;
-	else
-		return -EIO;
-}
-
-static int nau8821_reg_read(void *context, unsigned int reg,
-			     unsigned int *value)
-{
-	struct i2c_client *client = context;
-	struct i2c_msg xfer[2];
-	u16 reg_buf, val_buf;
-	int ret;
-
-	reg_buf = cpu_to_be16(reg);
-	xfer[0].addr = client->addr;
-	xfer[0].len = sizeof(reg_buf);
-	xfer[0].buf = (u8 *)&reg_buf;
-	xfer[0].flags = 0;
-
-	xfer[1].addr = client->addr;
-	xfer[1].len = sizeof(val_buf);
-	xfer[1].buf = (u8 *)&val_buf;
-	xfer[1].flags = I2C_M_RD;
-
-	ret = i2c_transfer(client->adapter, xfer, ARRAY_SIZE(xfer));
-	
-	if (ret < 0){
-		dev_info(&client->dev, "%x <= %x\n", reg, value);
-		return ret;
-	}else if (ret != ARRAY_SIZE(xfer))
-		return -EIO;
-
-	*value = be16_to_cpu(val_buf);
-
-	return 0;
-}
-#endif
-
 static const struct regmap_config nau8821_regmap_config = {
 	.val_bits = NAU8821_REG_DATA_LEN,
 	.reg_bits = NAU8821_REG_ADDR_LEN,
@@ -1138,10 +1080,6 @@ static const struct regmap_config nau8821_regmap_config = {
 	.readable_reg = nau8821_readable_reg,
 	.writeable_reg = nau8821_writeable_reg,
 	.volatile_reg = nau8821_volatile_reg,
-#ifdef DEBUG
-	.reg_read = nau8821_reg_read,
-	.reg_write = nau8821_reg_write,
-#endif
 
 	.cache_type = REGCACHE_RBTREE,
 	.reg_defaults = nau8821_reg_defaults,
@@ -1570,7 +1508,7 @@ int nau8821_enable_jack_detect(struct snd_soc_component *component,
 {
 	struct nau8821 *nau8821 = snd_soc_component_get_drvdata(component);
 	int ret;
-#ifdef DEBUG
+
 	ret = devm_request_threaded_irq(nau8821->dev, nau8821->irq, NULL,
 		nau8821_interrupt, IRQF_TRIGGER_LOW | IRQF_ONESHOT,
 		"nau8821", nau8821);
@@ -1579,7 +1517,7 @@ int nau8821_enable_jack_detect(struct snd_soc_component *component,
 			nau8821->irq, ret);
 		return ret;
 	}
-#endif
+
 	nau8821->jack = jack;
 
 	return ret;
@@ -1754,12 +1692,7 @@ static int nau8821_i2c_probe(struct i2c_client *i2c,
 	}
 	i2c_set_clientdata(i2c, nau8821);
 
-#ifdef DEBUG
-	nau8821->regmap = devm_regmap_init(dev, NULL,
-		i2c, &nau8821_regmap_config);
-#else
 	nau8821->regmap = devm_regmap_init_i2c(i2c, &nau8821_regmap_config);
-#endif
 
 #if 0
 	ret = regmap_write(nau8821->regmap, NAU8821_REG_RESET, 0x00);
